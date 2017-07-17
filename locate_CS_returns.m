@@ -114,14 +114,13 @@ else
     roll=+L1b.GEO.BaseLine.X; %roll correction (rad)
 end
 
-% GRAY MODIFICATION: a parabolic fit to a set of rolls (see gray_tests)
-% gave an optimum misfit at -.0119 degrees
-% Editing for R_POCA gave something closer to Laurence's original value of 
-% 0.0075 deg.
-roll=roll-.0075*pi/180;
+% Attempt to read the roll correction:
+burst_time=L1b.GEO.Serial_Sec_Num/24/3600+datenum('jan 1 2000');
+roll_corrected=read_roll_correction(burst_time)*pi/180;
 
-%roll = repmat(roll,[1 1 512]); %convert roll to 512xjxk
-%roll = permute(roll,[3 1 2]);
+delta_roll=roll_corrected-roll;
+roll(isfinite(roll_corrected))=roll_corrected(isfinite(roll_corrected));
+
 lambda = 0.022084; %(m)
 baseline = 1.1676; %(m)
  
@@ -174,7 +173,7 @@ for ii = 1:3
 end
 
 ff={'h_sc','xps_sc','yps_sc'};
-for kf=1:length(ff); 
+for kf=1:length(ff)
     D_out.(ff{kf})=CP.(ff{kf})(burst_num);
 end
 
@@ -183,9 +182,9 @@ D_out.range_surf=range_surf;
 D_out.time=L1b.GEO.Serial_Sec_Num(burst_num)/24/3600+datenum('jan 1 2000');
 D_out.time(L1b.GEO.Serial_Sec_Num(burst_num)==0)=NaN;
 ff=fieldnames(D_in);
-for kf=1:length(ff); 
+for kf=1:length(ff)
     D_out.(ff{kf})=D_in.(ff{kf});
 end
 
-
+D_out.delta_roll=delta_roll(burst_num);
  
