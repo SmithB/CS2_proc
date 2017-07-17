@@ -65,23 +65,57 @@ for kB=1:length(els)
     D1.index=els{kB};
     if all(D1.phase==0); continue; end
     R=NaN(3,1);
+    spread=NaN(3,1);
+    N=NaN(3,1);
     for kA=1:3
-        these=D1.ambiguity==amb_list(kA);
+        these=D1.ambiguity==amb_list(kA) & isfinite(D1.r);
         if any(these)
-            R(kA)=median(abs(D1.r(these)));
+            R(kA)=mean(abs(D1.r(these)));
+            spread(kA)=mean(abs(D1.r(these)-median(D1.r(these))));
+            N(kA)=sum(these);
         end
     end
     if all(isnan(R)); continue; end
-    best=find(isfinite(R) & R==min(R(isfinite(R))),1,'first');
-    amb_best=amb_list(best);
+    best_R=find(isfinite(R) & R==min(R(isfinite(R))),1,'first');
+    best_spread=find(isfinite(spread) & spread==min(spread(isfinite(spread))),1,'first');
+    if all(N(best_R)>3 & N(best_spread)>3)
+        % swath case
+        if best_R ~=best_spread  
+            % calculate the fractional improvement in spread and range from
+            % selecting the smallest, rather than the next-smallest
+            % ambiguity
+            frac_spread=(spread-min(spread))./max(1,min(spread));
+            frac_R=(R-min(R))./max(2,min(R));
+             
+            if frac_spread(best_R) < 0.5           
+                best=best_R;
+            elseif frac_R(best_spread) <0.1
+                % there's only a 10% range improvement from selecting this
+                % ambiguity
+                best=best_spread;
+            else
+                % we can't tell which ambiguity is best, punt
+                continue
+            end
+        else
+            % spread and R tell the same story
+            best=best_R;
+        end
+    else
+        % single-point case
+        best=best_R;
+    end
     
+    amb_best=amb_list(best);
+    R_sorted=sort(R);
     D2=index_struct(D1,D1.ambiguity==amb_best & D1.coherence > 775 );
+    D2.delta_ambiguity=zeros(size(D2.h))+(R_sorted(2)-R_sorted(1));
     if isempty(D2.h); continue; end
-    x_phase=D2.phase*dYdPhi;
+    x_phase=(D2.phase+2*pi*D2.ambiguity)*dYdPhi;
     if length(D2.h) > 1        
         if length(D2.h) > 3
             x_node=linspace(min(x_phase)-50, max(x_phase)+50, max(2,ceil(diff(range(x_phase))/400)));
-            if length(x_node) == 2;
+            if length(x_node) == 2
                 G_spline=[x_node(2)-x_phase(:) x_phase(:)-x_node(1)]/diff(x_node);
             else
                 G_spline=fd_spline_fit('build_G', x_phase, x_node, 0);
