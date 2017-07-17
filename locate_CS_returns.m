@@ -117,8 +117,12 @@ end
 % Attempt to read the roll correction:
 burst_time=L1b.GEO.Serial_Sec_Num/24/3600+datenum('jan 1 2000');
 roll_corrected=read_roll_correction(burst_time)*pi/180;
-
 delta_roll=roll_corrected-roll;
+
+% if the roll correction isn't available, subtract 0.0075 deg
+bad_RC=~isfinite(roll_corrrected);
+roll_corrected(bad_RC)=roll(bad_RC)-.0075*pi/180;
+
 roll(isfinite(roll_corrected))=roll_corrected(isfinite(roll_corrected));
 
 lambda = 0.022084; %(m)
