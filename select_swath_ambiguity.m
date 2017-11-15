@@ -14,8 +14,7 @@ if ~isfield(D_in,'seg_ind')
 end
 
 % replicate fields that need it (to cover ambiguities) and flatten
-for this={out_fieldnames{:},'seg_ind'}
-    
+for this=[out_fieldnames,{'seg_ind'}]   
     if strcmp(this{1},'ambiguity'); continue; end
     temp=D_in.(this{1});
     if size(temp,2)==1
@@ -32,7 +31,7 @@ else
 end
 Dsw.r=Dsw.h-Dsw.DEM;
 
-amb_list=[-1:1];
+amb_list=-1:1;
  
 if 0   
     XR=[-1.635 -1.565]*1e6;
@@ -44,7 +43,7 @@ if 0
         out=strsplit(deblank(out));
         InPolyCount=zeros(size(out));
         XR1=XR+[-1e4 1e4]; YR1=YR+[-1e4 1e4];
-        for k=1:length(out); 
+        for k=1:length(out)
             load(out{k},'X0');
             InPolyCount(k)=sum(real(X0) >= XR1(1) & real(X0) <= XR1(2) & imag(X0) >= YR1(1) & imag(X0) <= YR1(2));
         end      
@@ -60,6 +59,8 @@ end
 BS=Dsw.burst(:)+0.0001*Dsw.seg_ind(:);
 % loop over distinct bursts and segment indices
 els=bin_by( BS, unique(BS));
+D_out=repmat(struct('count', [], 'dh_spline_dx', [], 'block_h_spread', [],'index', []), [1,length(els)] ); 
+
 for kB=1:length(els)
     D1=index_struct(Dsw, els{kB},{'phase', 'h','r','ambiguity','power','coherence'});
     D1.index=els{kB};
@@ -160,7 +161,7 @@ for kB=1:length(els)
     D_out(kB).index=D2.index(ind);
 end
 
-if ~exist('D_out','var');
+if ~exist('D_out','var')
     D=[];
     return; 
 end
