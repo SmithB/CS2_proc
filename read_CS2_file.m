@@ -1,4 +1,4 @@
-function [D_POCA, D_swath, orb, out_table] = pick_and_run(L1_filename_full, hemisphere, bursts, params)
+function [D_POCA, D_swath, orb, out_table] = read_CS2_file(L1_filename_full, hemisphere, bursts, params)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -66,14 +66,14 @@ function [D_POCA, D_swath, orb, out_table] = pick_and_run(L1_filename_full, hemi
 % CP.bad_file    %file not on land
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+D_POCA=[]; D_swath=[]; orb=[]; orb_table=[];
 [RefEll.a,RefEll.b,RefEll.e2,RefEll.finv]=refell('WGS84');
 out_table=[];
 
 [HDR_L1b, L1b]=Cryo_L1b_read(L1_filename_full);
 
-
-%----added by alex
-
+if isempty(L1b.SIN.data); return; end
+ 
 
 orb.cycle = HDR_L1b.CYCLE; %Cycle number
 orb.rel_orbit = HDR_L1b.REL_ORBIT; %Relative orbit number
