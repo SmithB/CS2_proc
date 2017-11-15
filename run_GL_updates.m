@@ -62,11 +62,11 @@ if true
     [master_index_SW, INDEX_SW]=index_point_data_h5('make_master_index', INDEX_list_SW, [slope_picks_dir,'/master_index_SW.mat'], slope_picks_dir);
 
     
-    make_GL_h5('make_queue',  [slope_picks_dir,'/master_index_SW.mat'], h5_dir_sw,  5e4, 'sw');
-    make_GL_h5('make_index',  h5_dir_sw);    
+    make_CS_h5('make_queue',  [slope_picks_dir,'/master_index_SW.mat'], h5_dir_sw,  5e4, 'sw');
+    make_CS_h5('make_index',  h5_dir_sw);    
  
-    make_GL_h5('make_queue', [slope_picks_dir,'/master_index_POCA.mat'], h5_dir_poca, 2e5, 'POCA');
-    make_GL_h5('make_index',  h5_dir_poca);
+    make_CS_h5('make_queue', [slope_picks_dir,'/master_index_POCA.mat'], h5_dir_poca, 2e5, 'POCA');
+    make_CS_h5('make_index',  h5_dir_poca);
     
      
     % compare_swath_laser
