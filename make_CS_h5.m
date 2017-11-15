@@ -7,7 +7,7 @@ else
 end
 
 
-function queue_list=make_queue(  master_index_file, out_dir, dx0, mode)
+function queue_list=make_queue(master_index_file, out_dir, dx0, mode)
 
 load(master_index_file,'master_index');
 
@@ -57,7 +57,8 @@ x0=str2double(temp{1}{1})*1000;
 y0=str2double(temp{1}{2})*1000;
 
 all_bins=master_index.bin_x+1i*master_index.bin_y;
-these_bins=all_bins(round_to(all_bins, dx0)==(x0+1i*y0));
+%these_bins=all_bins(round_to(all_bins, dx0)==(x0+1i*y0));
+these_bins=all_bins(abs(real(all_bins)-x0) <= dx0/2+5000 & abs(imag(all_bins)-y0) <= dx0/2+5000);
 if isempty(these_bins)
     return
 end
@@ -67,7 +68,7 @@ D=index_point_data_h5('read_from_index', these_bins, master_index, fields);
 these=D.x>x0-dx0/2 & D.x <= x0+dx0/2  & D.y>y0-dx0/2 & D.y <= y0+dx0/2 & isfinite(D.x);
 if ~any(these); return; end
 if ~all(these);
-D=index_struct(D, these);
+    D=index_struct(D, these);
 end
 
 % check this
