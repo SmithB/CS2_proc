@@ -9,9 +9,10 @@ for k=1:length(files)
     temp=regexp(files(k).name,'fit_(.*)_(.*).mat','tokens'); XY(k,:)=str2num([temp{1}{1},' ', temp{1}{2}])*1000; 
 end
 dX=median([diff(unique(XY(:,1))); diff(unique(XY(:,1)))]) ;
-these_files=XY(:,1) >= XR(1)-dX & XY(:,1) <= XR(2)+dX & XY(:,2) >= YR(1)-dX & XY(:,2) <= YR(2)+dX;
-files=files(these_files); 
-
+if exist('XR','var');
+    these_files=XY(:,1) >= XR(1)-dX & XY(:,1) <= XR(2)+dX & XY(:,2) >= YR(1)-dX & XY(:,2) <= YR(2)+dX;
+    files=files(these_files);
+end
 good=false(length(files),1);
 for kf=1:length(files)
     
@@ -164,7 +165,7 @@ for k=1:size(dZ.z, 3)-1;
 end
 end
 
-
+return
 
 load('/Volumes/insar4/gmap/accum/RACMO2.3/AA//zfirn_20km_10days_all_AA.mat')
 

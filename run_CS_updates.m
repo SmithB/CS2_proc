@@ -24,12 +24,12 @@ end
 
 if false
     ! rm -rf par_run
-    make_L1_queue(L1_dir, slope_picks_dir, DEM_file);%, file_list);
+    make_L1_queue_north(L1_dir, slope_picks_dir, DEM_file);%, file_list);
     % start a new tmux session (if needed)
     ! bash -c "tmux info || (tmux new-session -d)"
     % start the parallel boss
-    ! tmux new-window "parallel_boss.py -m L1_queue.txt ; parallel_boss.py"
-    ! run_workers_in_tmux -m 1
+    ! tmux new-window "pboss.py -m L1_queue.txt ; pboss.py"
+    ! run_pworkers -m 1
     % Now run around to the other machines and start a bunch of other workers.  OR don't, if this is an easy job.
     pause(30);
     while unix('ls par_run/running/*')==0
@@ -39,7 +39,7 @@ if false
 end
 
 
-if false
+if true
     if true
         if exist(h5_dir_poca,'dir')
             delete([h5_dir_sw,'/*']);

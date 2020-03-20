@@ -368,7 +368,8 @@ for k=1:length(XG(:))
             D.mask_at_pts=interp2(mask.x, mask.y, double(mask.z~=0), D.x, D.y,'*nearest')~=0;
         end
         
-        D.year=(D.time-datenum('jan 1 2000'))/365;
+        % note: changed from 365 to 365.25 3/1/2018
+        D.year=(D.time-datenum('jan 1 2000'))/365.25;
         
         M=struct('dx', params.dx, 'dy', params.dx, 'dt', params.dt, 'XR', XG(k)+[-1 1]*W/2,'YR', YG(k)+[-1 1]*W/2, 'TR', params.TR,'dx0', params.dx0,'dy0', params.dx0,'time_zero_season', params.time_zero_season, ...
             'sigma', params.sigma);
@@ -398,7 +399,7 @@ xg=(floor((real(X0)-W/2)/dx):ceil((real(X0)+W/2)/dx))*dx;
 yg=(floor((imag(X0)-W/2)/dx):ceil((imag(X0)+W/2)/dx))*dx;
 [xg, yg]=meshgrid(xg, yg);
 
-D=index_point_data_h5('read_from_index',   xg(:)+1i*yg(:),  INDEX, {'x','y','time','h', 'power','coherence','AD','error_composite', 'R_POCA', 'ambiguity','burst','abs_orbit', 'block_h_spread','count','phase','R_offnadir','range_surf','seg_ind'}, []);
+D=index_point_data_h5('read_from_index',   xg(:)+1i*yg(:),  INDEX, {'x','y','time','h', 'power','coherence','AD','error_composite', 'R_POCA', 'ambiguity','burst','abs_orbit', 'block_h_spread','count','phase','R_offnadir','range_surf','seg_ind','dRange_POCA'}, []);
 if any(D.count>1)
     D=index_struct(D, D.power > 1e-17 & D.power < 1e-13 & D.error_composite==0 & D.count > 3 & D.block_h_spread < 15);
 else

@@ -23,11 +23,17 @@ for this=[out_fieldnames,{'seg_ind'}]
     Dsw.(this{1})=temp(:);
 end
 
+Dsw.DEM=NaN(size(Dsw.h));
 if isfield(DEM,'t0')
     Dsw.DEM=interpn(DEM.y, DEM.x, [DEM.t0, DEM.t0(end)+median(diff(DEM.t0))], cat(3, DEM.z, DEM.z(:,:,end)), imag(Dsw.xPS), real(Dsw.xPS), Dsw.time, '*linear')+ ...
         interpn(DEM.y, DEM.x, DEM.z0,imag(Dsw.xPS), real(Dsw.xPS), '*linear') ;
 else
-    Dsw.DEM=interp2(DEM.x, DEM.y, DEM.z, real(Dsw.xPS), imag(Dsw.xPS),'*linear');
+    if min(size(DEM.z)) > 2
+        Dsw.DEM=interp2(DEM.x, DEM.y, DEM.z, real(Dsw.xPS), imag(Dsw.xPS),'*linear');
+    end
+end
+if isfield(Dsw,'geoid') & any ~isfinite(Dsw.DEM);
+    Dsw.DEM(~isfinite(Dsw.DEM))=Dsw.geoid(~isfinite(Dsw.DEM));
 end
 Dsw.r=Dsw.h-Dsw.DEM;
 

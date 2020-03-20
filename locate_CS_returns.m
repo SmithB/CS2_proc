@@ -51,12 +51,6 @@ CP.xv_Y = Y(1,:)';
 CP.yv_Y = Y(2,:)';
 CP.zv_Y = Y(3,:)';
 
-% %normalize Y vector
-% bvnorm = sqrt(CP.xv_Y.^2 + CP.yv_Y.^2 + CP.zv_Y.^2); bvnorm=bvnorm(:);
-% CP.xv_Y = CP.xv_Y./bvnorm;
-% CP.yv_Y = CP.yv_Y./bvnorm;
-% CP.zv_Y = CP.zv_Y./bvnorm;
- 
 %cross product of Y vector and X vector to find Z vector
 CP.xv_Z = CP.yv_Y.*CP.zv_X - CP.zv_Y.*CP.yv_X;
 CP.yv_Z = CP.zv_Y.*CP.xv_X - CP.xv_Y.*CP.zv_X;
@@ -73,9 +67,9 @@ L1b.GEO.LON(L1b.GEO.LON == 0) = NaN;
 [xp_sc,yp_sc,zp_sc]=ell2xyz(deg2rad(L1b.GEO.LAT(:)),deg2rad(L1b.GEO.LON(:)),L1b.GEO.H(:),a,e2);
 xp_sc = reshape(xp_sc,j,k);
 yp_sc = reshape(yp_sc,j,k);
-CP.h_sc = reshape(zp_sc,j,k);
+zp_sc = reshape(zp_sc,j,k);
 [CP.xps_sc,CP.yps_sc]=fwd_projection(L1b.GEO.LAT(:),L1b.GEO.LON(:)); %polar stereographic
-
+CP.h_sc=reshape(L1b.GEO.H(:), j, k);
 %calculate range
 c = 299792458; %speed of light (m/s)
 B = 3.2e8; %measured chirp bandwidth (Hz)
@@ -159,7 +153,7 @@ for ii = 1:3
     %new points in cartesian (m)
     xp_new = xp_sc(burst_num) + R.xv_R.*range_surf;
     yp_new = yp_sc(burst_num) + R.yv_R.*range_surf;
-    zp_new = CP.h_sc(burst_num) + R.zv_R.*range_surf;
+    zp_new = zp_sc(burst_num) + R.zv_R.*range_surf;
     
     %convert and resize new points to lat/lon/h (rad,rad,m)
     [R.lat_new, R.lon_new, R.h_new]=xyz2ell2(xp_new(:),yp_new(:),zp_new(:),a,e2);
