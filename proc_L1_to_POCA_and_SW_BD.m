@@ -8,7 +8,7 @@ catch
 end
 
 if isnumeric(year)
-    year_str=num2str_year;
+    year_str=num2str(year);
 else
     year_str=year;
 end
