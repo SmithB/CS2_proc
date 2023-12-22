@@ -158,6 +158,12 @@ for kf=1:length(ff)
     D_out.(ff{kf})=D_in.(ff{kf});
 end
 
+if isempty(D_out.xPS)
+    D_out.DEM=zeros(size(D_out.xPS))+NaN;
+    D_out.geoid=zeros(size(D_out.xPS))+NaN;
+    return
+end
+
 XR=range(real(D_out.xPS(:)));
 YR=range(imag(D_out.xPS(:)));
 geoid=read_geotif_xy(params.geoid, XR+[-1e4, 1e4], YR+[-1e4, 1e4]);
