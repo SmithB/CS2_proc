@@ -8,9 +8,9 @@ Created on Sun Dec 31 12:29:32 2023
 
 import numpy as np
 import pointCollection as pc
-from utils import med_ind_and_spread_for_segment
+from .utils import med_ind_and_spread_for_segment
 import scipy.sparse as sps
-from hermite_poly_fit import hermite_design_matrix
+from .hermite_poly_fit import hermite_design_matrix
 
 
 def proc_swath_bursts(D_L1, bursts=None, Cmin=0.75):
@@ -144,7 +144,7 @@ def reduce_swath(D_sw, dYdPhi):
     D_sw_r = D_sw[iMed]
     for field in D_sw_r.fields:
         setattr(D_sw_r, field, np.mean(getattr(D_sw_r, field), axis=1))
+    D_sw_r.assign({'block_h_spread':spread, 'block_count':block_N})
     D_sw_r.__update_size_and_shape__()
     
     return D_sw_r
-

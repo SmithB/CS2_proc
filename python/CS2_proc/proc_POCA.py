@@ -7,11 +7,11 @@ Created on Tue Dec 26 16:47:56 2023
 """
 
 import numpy as np
-from utils import  find_maxima
+from .utils import  find_maxima, conv_same
 import pointCollection as pc
 
 def pick_bursts(D_L1, bursts=None, C_min=0.75):
-    
+
     if bursts is None:
         bursts=range(D_L1.N_bursts)
 
@@ -19,7 +19,7 @@ def pick_bursts(D_L1, bursts=None, C_min=0.75):
     for burst in range(D_L1.N_bursts):
         D_sub += [ pick_burst(D_L1, burst, C_min=C_min) ]
     D_sub = [Di for Di in D_sub if Di is not None]
-   
+
     return pc.data().from_list(D_sub)
 
 def pick_burst(D_L1, burst, C_min=0.75, DEBUG=False):
@@ -28,7 +28,7 @@ def pick_burst(D_L1, burst, C_min=0.75, DEBUG=False):
     dPdt = np.convolve(P, D_L1.K_smooth_slope,  mode='same')
     P_smooth = np.convolve(P, D_L1.K_smooth,  mode='same')
     C_smooth = np.convolve(D_L1.C[burst,:], D_L1.K_smooth, mode='same')
-    
+
     mask = (dPdt > 6*D_L1.P_noise[burst]/np.sqrt(D_L1.sigma_k)) & (D_L1.C[burst,:] > C_min)
 
     # eliminate small islands in the mask:
@@ -36,7 +36,7 @@ def pick_burst(D_L1, burst, C_min=0.75, DEBUG=False):
         np.convolve(mask, np.ones(D_L1.sigma_k+1),mode='same')>D_L1.sigma_k/2,
             np.ones(D_L1.sigma_k), 'same')>0;
     Ph=D_L1.Ph[burst,:]
-    
+
     maxima = find_maxima(dPdt, mask)
     if len(maxima)==0:
         return
@@ -53,16 +53,16 @@ def pick_burst(D_L1, burst, C_min=0.75, DEBUG=False):
     # label is a variable that increments every time the mask goes 0->1, and is -1 where mask == 0
     label=np.concatenate([[0], np.cumsum(np.diff(mask)==1)])
     label[mask==0]=-1
- 
+
     D_list=[]
     for i_max, this_max_ind in enumerate(maxima):
-        this_D_out = pick_segment(D_L1, i_max, this_max_ind, 
+        this_D_out = pick_segment(D_L1, i_max, this_max_ind,
                                     P, Ph, dPdt, P_smooth, C_smooth, mask, label,
                                       DEBUG=DEBUG)
         if this_D_out is not None:
             this_D_out['burst']=burst+np.zeros_like(this_D_out['power'], dtype=int)
             D_list += [this_D_out]
-    
+
     D_out=None
     if len(D_list):
         D_out={}
@@ -74,7 +74,7 @@ def pick_burst(D_L1, burst, C_min=0.75, DEBUG=False):
 
 def pick_segment(D_L1, i_max, max_ind, P, Ph, dPdt, P_smooth, C_smooth, mask, label, DEBUG=False):
 
-    # find the valid region around the maximum        
+    # find the valid region around the maximum
     this_label=label[max_ind]
     these_samps=np.flatnonzero(label==label[max_ind])
     i01 = [these_samps[0], these_samps[-1]]
@@ -100,24 +100,25 @@ def pick_segment(D_L1, i_max, max_ind, P, Ph, dPdt, P_smooth, C_smooth, mask, la
     if len(Ph1) == len(D_L1.Ph_edge_correction):
         Ph1s = np.convolve(Ph1, D_L1.K_smooth, mode='same')/D_L1.Ph_edge_correction
     else:
-        # The convolution with the 'same' parameter will cause problems 
-        # when Ph1 is smaller than 6*sigma_k
-        if len(Ph1) < 6*D_L1.sigma_k:
+        if len(Ph1) < 3*D_L1.sigma_k:
             return
-        Ph1s = np.convolve(Ph1, D_L1.K_smooth, mode='same')/ \
-            np.convolve(np.ones_like(Ph1), D_L1.K_smooth, mode='same')
+        Ph1s = conv_same(Ph1, D_L1.K_smooth)/ \
+            conv_same(np.ones_like(Ph1), D_L1.K_smooth)
 
     # note that we are not (yet) calculating the values N_fp_bins, P_int, or power_before_pick
-    
+
     # interpolate the smoothed values at the sample value
-    D_out=dict(
-        phase = np.interp(Smax_ind, reg1, Ph1s),
-        power = np.interp(Smax_ind, reg1, P_smooth[reg1]),
-        dPdt_est = np.interp(Smax_ind, reg1,  dPdt[reg1]),
-        coherence = np.interp(Smax_ind, reg1, C_smooth[reg1]),
-        P_raw = np.interp(Smax_ind, reg1, P[reg1]),
-        ret_count = i_max,
-        samp = Smax_ind)
+    try:
+        D_out=dict(
+            phase = np.interp(Smax_ind, reg1, Ph1s),
+            power = np.interp(Smax_ind, reg1, P_smooth[reg1]),
+            dPdt_est = np.interp(Smax_ind, reg1,  dPdt[reg1]),
+            coherence = np.interp(Smax_ind, reg1, C_smooth[reg1]),
+            P_raw = np.interp(Smax_ind, reg1, P[reg1]),
+            ret_count = i_max,
+            samp = Smax_ind)
+    except Exception:
+        pass
 
     if DEBUG:
         D_out.update(dict(
@@ -132,7 +133,7 @@ def pick_segment(D_L1, i_max, max_ind, P, Ph, dPdt, P_smooth, C_smooth, mask, la
             C_smooth=C_smooth,
             label=label,
             max_ind = max_ind,
-            mask_samps=these_samps, 
+            mask_samps=these_samps,
         ))
 
     return D_out

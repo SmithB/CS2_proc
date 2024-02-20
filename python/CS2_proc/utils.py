@@ -13,11 +13,11 @@ def gaussian(x, c=0, sigma=1):
     return 1/(sigma*np.sqrt(2*np.pi))*np.exp(-1/2*((x-c)/sigma)**2)
 
 def find_maxima(x, mask=None):
-    
+
     if mask is not None:
         return 1 + np.flatnonzero((x[1:-2] > x[0:-3]) & (x[1:-2] > x[2:-1]) & mask[1:-2])
     else:
-        return 1 + np.flatnonzero((x[1:-2] > x[0:-3]) & (x[1:-2] > x[2:-1])) 
+        return 1 + np.flatnonzero((x[1:-2] > x[0:-3]) & (x[1:-2] > x[2:-1]))
 
 def bin_spread(z, ind, sorted=False):
     z0 = z[ind]
@@ -71,3 +71,13 @@ def med_ind_and_spread_for_segment(x, z, delta, x0=0):
     # convert the index on the sorted x_phase to the unsorted index
     iMed=ii[iMed]
     return iMed, spread, N
+
+def conv_same(aa, bb):
+    if len(bb) <= len(aa):
+        return np.convolve(aa, bb, mode='same')
+    cf=np.convolve(aa, bb, mode='full')
+    Nbh=int(len(bb)/2)
+    if np.mod(len(bb),2)==1:
+        return cf[Nbh:-Nbh]
+    else:
+        return cf[Nbh-1:Nbh]
