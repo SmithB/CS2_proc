@@ -19,8 +19,8 @@ while ~feof(file_list_FID)
     in_file=deblank(fgetl(file_list_FID));
     
     [~, fname]=fileparts(in_file);
-    out_POCA=[out_dir, fname,'.h5'];
-    out_SW=[out_dir, fname,'_sw.h5'];
+    out_POCA=[out_dir, '/', fname,'.h5'];
+    out_SW=[out_dir,'/', fname,'_sw.h5'];
     if exist(out_POCA,'file')
         continue
     end

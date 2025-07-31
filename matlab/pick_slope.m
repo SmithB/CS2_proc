@@ -24,6 +24,7 @@ S0(S0<1e-20)=median(S0(S0>1e-20)); %%%
 
 % width of the smoothing kernel
 % This was set to 4 for the smooth pick set.  
+% a value of 2 can find some sharper returns, may be less biased!
 sigma_k=4;
 
 
@@ -102,7 +103,7 @@ for ind=1:length(bursts);
         
         
         i1=find(~mask(i0:end,k), 1, 'first');
-        if isempty(i1) || i1 < 5;
+        if isempty(i1) || i1 < 5
             continue
         end
         
@@ -165,6 +166,8 @@ for ind=1:length(bursts);
         if exist('L1b','var');
             c = 299792458; 
             B = 3.2e8; %measured chirp bandwidth (Hz)
+            c = 299792458; 
+            B = 3.2e8; %measured chirp bandwidth (Hz)
 
             [~, j, ~] = size(L1b.SIN.data);
      
@@ -211,7 +214,9 @@ for ind=1:length(bursts);
         end
         ylabel('dPower/dt');
         axes(h(4));
-        plot(range_vals, dYdPhi*unwrap(Ph(:, k)) );
+        plot(range_vals, unwrap(Ph(:, k)),'r.' );
+        hold on;
+        plot(range_vals, Ph(:,k),'k.');
         ylabel('Phase');
         %         axes(h(5));
         %         plot(range_sub, Ph1, range_sub(els_in_fp), Ph1(els_in_fp),'r.' , .2342*Smax_ind(k), phase_est(k),'g*');

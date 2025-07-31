@@ -1,16 +1,26 @@
-function proc_L1_to_POCA_and_SW(in_file, out_dir,  hemisphere, DEM)
+edit function proc_L1_to_POCA_and_SW(in_file, out_dir,  hemisphere, DEM)
 
-if ~exist('hemisphere','var') || hemisphere==1
+if ~exist('DEM','var') || (~exist('hemisphere','var') || hemisphere==1)
     DEM='/Volumes/insar2/gmap/gimp/gimp_90m_cubic.tif' ;
     hemisphere=1;
 end
+
+params.geoid=getappdata(0,'geoid');
+if isempty(params.geoid)
+    if hemisphere==1
+        params.geoid=read_geotif('/Volumes/insar2/gmap/geoid/EGM2008/EGM2008_North_fixed.tif');
+    else
+        params.geoid=read_geotif('/Volumes/insar2/gmap/geoid/EGM2008/EGM2008.tif');        
+    end
+    setappdata(0,'geoid', params.geoid);
+end
+
 
 [~, fname]=fileparts(in_file);
 %out_POCA=[out_dir,'/', fname,'.mat'];
 %out_SW=[out_dir,'/', fname,'_sw.mat'];
 out_POCA=[out_dir,'/', fname,'.h5'];
 out_SW=[out_dir,'/', fname,'_sw.h5'];
-
 if exist(out_POCA,'file')
     %return
 end

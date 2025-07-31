@@ -4,17 +4,32 @@ function [ dZ, z0, bias, Flist, x0, seasonal_cycle, bias_list]=merge_models(dirn
 % limiting the output range to XR and YR
 
 files=dir([dirname,'/fit*.mat']);
-good=false(length(files),1);
-for kf=1:length(files);
-    try
-        L(kf)=load([dirname,'/',files(kf).name],'S','M');
 
+for k=1:length(files)
+    temp=regexp(files(k).name,'fit_(.*)_(.*).mat','tokens'); XY(k,:)=str2num([temp{1}{1},' ', temp{1}{2}])*1000; 
+end
+dX=median([diff(unique(XY(:,1))); diff(unique(XY(:,1)))]) ;
+if exist('XR','var');
+    these_files=XY(:,1) >= XR(1)-dX & XY(:,1) <= XR(2)+dX & XY(:,2) >= YR(1)-dX & XY(:,2) <= YR(2)+dX;
+    files=files(these_files);
+end
+good=false(length(files),1);
+for kf=1:length(files)
+    
+    try
+        temp=load([dirname,'/',files(kf).name],'M');
+        if ~(any(temp.M.YR>=YR(1) & temp.M.YR <=YR(2)) &&...
+                any(temp.M.XR>=XR(1) &  temp.M.XR<=XR(2)))
+            continue
+        end
+        L(kf)=load([dirname,'/',files(kf).name],'S','M');
+        
     catch
         continue
     end
     if isstruct(L(kf).S)   
         temp=load([dirname,'/',files(kf).name],'D');
-        [CC(kf).swath, CC(kf).poca]=count_swath_poca(index_struct(temp.D, temp.D.good), L(kf).S.grids);          
+        [CC(kf).swath, CC(kf).poca]=count_swath_poca(index_struct(temp.D, temp.D.good), L(kf).S.grids);           
         XR_sub(kf,:)=range(L(kf).S.grids.dz.ctrs{2});
         YR_sub(kf,:)=range(L(kf).S.grids.dz.ctrs{1});
         x0(kf)=mean(L(kf).S.grids.dz.ctrs{2})+1i*mean(L(kf).S.grids.dz.ctrs{1});
@@ -37,10 +52,10 @@ overlap=(median(xw)-dx_ctr);
 N_clip=floor((overlap/L(1).M.dx)/2);
 dx=L(1).M.dx;
 
-if ~exist('XR','var');
-    XR=[min(XR_sub(:,1))+ceil(N_clip/2)*dx max(XR_sub(:,2))-ceil(N_clip/2)*dx];
-    YR=[min(YR_sub(:,1))+ceil(N_clip/2)*dx max(YR_sub(:,2))-ceil(N_clip/2)*dx];
-end
+%if ~exist('XR','var');
+XR=[min(XR_sub(:,1))+ceil(N_clip/2)*dx max(XR_sub(:,2))-ceil(N_clip/2)*dx];
+YR=[min(YR_sub(:,1))+ceil(N_clip/2)*dx max(YR_sub(:,2))-ceil(N_clip/2)*dx];
+%end
 HW=hanning(N_clip).^2; HW=HW/sum(HW);
 
 dZ.x=XR(1):dx:XR(2);
@@ -130,8 +145,10 @@ for kf=1:length(L);
 
     w(r0, c0)=w(r0, c0)+temp(S_row_ind, S_col_ind);
     zw(r0, c0)=zw(r0, c0)+temp(S_row_ind, S_col_ind).*L(kf).S.z0(S_row_ind, S_col_ind);
-    cpw(r0, c0)=cpw(r0, c0)+temp(S_row_ind, S_col_ind).*CC(kf).poca(S_row_ind, S_col_ind);
-    csw(r0, c0)=csw(r0, c0)+temp(S_row_ind, S_col_ind).*CC(kf).swath(S_row_ind, S_col_ind);
+    if ~isempty(CC(kf).poca)
+        cpw(r0, c0)=cpw(r0, c0)+temp(S_row_ind, S_col_ind).*CC(kf).poca(S_row_ind, S_col_ind);
+        csw(r0, c0)=csw(r0, c0)+temp(S_row_ind, S_col_ind).*CC(kf).swath(S_row_ind, S_col_ind);
+    end
 end
 z0.z(w>0.001)=zw(w>0.001)./w(w>0.001);
 z0.count_POCA(w>0.001)=cpw(w>0.001)./w(w>0.001);
@@ -148,7 +165,7 @@ for k=1:size(dZ.z, 3)-1;
 end
 end
 
-
+return
 
 load('/Volumes/insar4/gmap/accum/RACMO2.3/AA//zfirn_20km_10days_all_AA.mat')
 

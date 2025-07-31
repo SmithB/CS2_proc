@@ -1,4 +1,4 @@
-function [D_POCA, D_swath, orb, out_table] = pick_and_run(L1_filename_full, hemisphere, bursts, params)
+function [D_POCA, D_swath, orb, out_table] = read_CS2_file(L1_filename_full, hemisphere, bursts, params)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -66,14 +66,14 @@ function [D_POCA, D_swath, orb, out_table] = pick_and_run(L1_filename_full, hemi
 % CP.bad_file    %file not on land
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+D_POCA=[]; D_swath=[]; orb=[]; orb_table=[];
 [RefEll.a,RefEll.b,RefEll.e2,RefEll.finv]=refell('WGS84');
 out_table=[];
 
 [HDR_L1b, L1b]=Cryo_L1b_read(L1_filename_full);
 
-
-%----added by alex
-
+if ~isstruct(L1b) || ~isfield(L1b.SIN,'data') || isempty(L1b.SIN.data); return; end
+ 
 
 orb.cycle = HDR_L1b.CYCLE; %Cycle number
 orb.rel_orbit = HDR_L1b.REL_ORBIT; %Relative orbit number
@@ -109,11 +109,15 @@ D_POCA = pick_slope(CP.wave_watts, CP.coherence, CP.phase, bursts, CP.noise_dB, 
  
 % ------------------now run the location routine
 D_POCA=locate_CS_returns(D_POCA, L1b, CP, hemisphere);
+if isfield(params,'geoid')
+    D_POCA.geoid=interp2(geoid.x(:)', geoid.y(:), geoid.z, real(D_POCA.xPS), imag(D_POCA.yPS));
+end
+
 if ~isempty(D_POCA.h)
-    if ~exist('params','var'); 
+    if ~exist('params','var') 
         D_POCA=[]; orb_table=[]; orb=[]; D_swath=[]; return; 
     end
-    if ~isstruct(params.DEM);
+    if ~isstruct(params.DEM)
         this_DEM=read_geotif_xy(params.DEM, range(real(D_POCA.xPS(:)))+[-90 90], range(imag(D_POCA.xPS(:)))+[-90 90]);
     else
         this_DEM=params.DEM;
@@ -122,9 +126,13 @@ if ~isempty(D_POCA.h)
 end
 if isempty(D_POCA); D_swath=[]; orb=[]; return; end
 
-% 
+% locate the CS points
 D_swath=proc_CS2_swath(CP.wave_watts, CP.coherence, CP.phase, bursts);
 D_swath=locate_CS_returns(D_swath, L1b, CP, hemisphere);
+if isfield(params,'geoid')
+    D_swath.geoid=interp2(geoid.x(:)', geoid.y(:), geoid.z, real(D_swath.xPS), imag(D_swath.yPS));
+end
+
 if ~isempty(D_swath.h)
     if hemisphere==1
         DEM=read_geotif_xy('/Volumes/insar2/gmap/gimp/gimp_90m_cubic.tif', range(real(D_swath.xPS(:)))+[-90 90], range(imag(D_swath.xPS(:)))+[-90 90]);
@@ -139,7 +147,7 @@ if ~isempty(D_swath.h)
     D_swath.R_offnadir=abs(D_swath.xPS-repmat(D_swath.xps_sc+1i*D_swath.yps_sc, [1, 3]));    
     D_swath=select_swath_ambiguity(D_swath, DEM, {'xPS','h','time','burst','seg_ind','ambiguity', 'phase','power','coherence', 'samp','R_offnadir','range_surf'});
     
-    if ~isempty(D_swath);
+    if ~isempty(D_swath) && ~isempty(D_swath.time)
         % loop over the POCA points, find the closest POCA point (in y) to
         % each swath point, record the y difference
         % find the closest POCA point (in range), record the difference

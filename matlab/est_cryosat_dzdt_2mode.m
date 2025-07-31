@@ -169,13 +169,10 @@ if ~baseline_b
 end
 
 CS_data_new='/Volumes/insar6/ben/Cryosat/';
-if baseline_c
-    %try the new Helm picks
-    data_file_POCA=[CS_data_new,'POCA_h5_C/south/AA_Helm_v2c_sigma4/master_index_h5.mat'];
-    data_file_sw=[CS_data_new,'SW_h5_C/south/AA_Helm_v2c_sigma4/master_index_h5.mat'];
-    %data_file_POCA=[CS_data_new,'POCA_h5_C/south/AA_v1c_sigma4/master_index_h5.mat'];
-    %data_file_sw=[CS_data_new,'SW_h5_C/south/AA_v1c_sigma4/master_index_h5.mat'];
-end
+
+%try the new Helm picks
+data_file_POCA=[CS_data_new,'POCA_h5_C/south/AA_Helm_v2c_sigma4/master_index_h5.mat'];
+data_file_sw=[CS_data_new,'SW_h5_C/south/AA_Helm_v2c_sigma4/master_index_h5.mat'];
 
 %out_dir='/Volumes/ice1/ben/Cryosat/fits/Amundsen_combo_v2/';
 %out_dir='/Volumes/ice1/ben/Cryosat/fits/Amundsen_lakes_SwathBiasOnly_relaxed/';
@@ -258,7 +255,7 @@ load /Volumes/ice1/ben/Cryosat/Zmodel_Dec_10_2014
 params.DEM=struct('x',Zmodel.x, 'y', Zmodel.y, 'z', Zmodel.z0);
 params.dZ_model=struct('x', Zmodel.x, 'y', Zmodel.y, 'z', Zmodel.z, 't0', Zmodel.t0);
 
-for k=1:length(XG(:));
+for k=1:length(XG(:))
     save_name=sprintf('%s/fit_%d_%d.mat', params.out_dir, round(XG(k)/1e3), round(YG(k)/1e3));
     if (~exist(save_name,'file') && lockfile_tool('check', save_name)==0) || OverWrite
         lockfile_tool('lock', save_name);
@@ -371,7 +368,8 @@ for k=1:length(XG(:))
             D.mask_at_pts=interp2(mask.x, mask.y, double(mask.z~=0), D.x, D.y,'*nearest')~=0;
         end
         
-        D.year=(D.time-datenum('jan 1 2000'))/365;
+        % note: changed from 365 to 365.25 3/1/2018
+        D.year=(D.time-datenum('jan 1 2000'))/365.25;
         
         M=struct('dx', params.dx, 'dy', params.dx, 'dt', params.dt, 'XR', XG(k)+[-1 1]*W/2,'YR', YG(k)+[-1 1]*W/2, 'TR', params.TR,'dx0', params.dx0,'dy0', params.dx0,'time_zero_season', params.time_zero_season, ...
             'sigma', params.sigma);
@@ -401,8 +399,8 @@ xg=(floor((real(X0)-W/2)/dx):ceil((real(X0)+W/2)/dx))*dx;
 yg=(floor((imag(X0)-W/2)/dx):ceil((imag(X0)+W/2)/dx))*dx;
 [xg, yg]=meshgrid(xg, yg);
 
-D=index_point_data_h5('read_from_index',   xg(:)+1i*yg(:),  INDEX, {'x','y','time','h', 'power','coherence','AD','error_composite', 'R_POCA', 'ambiguity','burst','abs_orbit', 'block_h_spread','count','phase','R_offnadir'}, []);
-if any(D.count>1);
+D=index_point_data_h5('read_from_index',   xg(:)+1i*yg(:),  INDEX, {'x','y','time','h', 'power','coherence','AD','error_composite', 'R_POCA', 'ambiguity','burst','abs_orbit', 'block_h_spread','count','phase','R_offnadir','range_surf','seg_ind','dRange_POCA'}, []);
+if any(D.count>1)
     D=index_struct(D, D.power > 1e-17 & D.power < 1e-13 & D.error_composite==0 & D.count > 3 & D.block_h_spread < 15);
 else
     D=index_struct(D, D.power > 1e-17 & D.power < 1e-13 & D.error_composite==0);
@@ -439,9 +437,9 @@ yg=(floor((imag(X0)-W/2)/dx):ceil((imag(X0)+W/2)/dx))*dx;
 %D=index_point_data_h5('read_h5_file', data_file,  xg(:)+1i*yg(:),  {'x','y','time','surf_height', 'backsc_sig','AD','x_sc','y_sc', 'h_sc','Qflag'}, []);
 
 if strcmp(data_file(end-2:end),'mat')
-    D=index_point_data_h5('read_from_index',   xg(:)+1i*yg(:),  INDEX, {'x','y','time','h', 'power','coherence','AD','error_composite', 'ambiguity','burst','abs_orbit'}, []);
+    D=index_point_data_h5('read_from_index',   xg(:)+1i*yg(:),  INDEX, {'x','y','time','h', 'power','coherence','AD','error_composite', 'ambiguity','burst','abs_orbit','phase','range_surf'}, []);
 else
-    D=index_point_data_h5('read_h5_file', data_file,  xg(:)+1i*yg(:),  {'x','y','time','h', 'power','coherence','AD','error_composite', 'ambiguity','pulse_num','abs_orbit'}, []);
+    D=index_point_data_h5('read_h5_file', data_file,  xg(:)+1i*yg(:),  {'x','y','time','h', 'power','coherence','AD','error_composite', 'ambiguity','pulse_num','abs_orbit','phase','range_surf'}, []);
     D.burst=D.pulse_num;
     D=rmfield(D,'pulse_num');
 end
@@ -774,13 +772,28 @@ for k=1:N_edit_iterations;
     end
     
     % give the ierations a chance to converge, then try to remove the worst swaths
-    if k==4 && isfield(params,'calc_perswath_bias') && params.calc_perswath_bias
+    if k>=4 && isfield(params,'calc_perswath_bias') && params.calc_perswath_bias
         BadPerSwathOrbit=uOrb(abs(m(TOC.cols.perswath_fit))>10);
     end
     if exist('BadPerSwathOrbit','var')
         good=good & ~ismember(D.abs_orbit.*D.AD, BadPerSwathOrbit);
     end
-   
+    
+    if false
+        % flag swath segments that have RMS(rs)> 5
+        if k>=4
+            uOBS=unique([D.abs_orbit(D.good & D.swath), D.burst(D.good& D.swath), D.seg_ind(D.good& D.swath)],'rows');
+            [~, ii]=ismember([D.abs_orbit, D.burst, D.seg_ind, D.swath], [uOBS, ones(size(uOBS,1),1)],'rows');
+            [~, jj]=ismember(ii, 1:length(ii));
+            DS_mat=sparse(jj(ii~=0), ii(ii~=0), ones(sum(ii~=0),1), length(uOBS), length(D.x));
+            SS_seg=DS_mat*(D.good.*rs).^2;
+            RMS_seg=SS_seg;
+            N_seg=sum(DS_mat,2);
+            RMS_seg(N_seg>0)=RMS_seg(N_seg>0)./N_seg(N_seg>0);
+            RMS_seg=sqrt(RMS_seg);
+        end
+    end
+    
 end
 
 % report the results
